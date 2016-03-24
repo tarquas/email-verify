@@ -121,6 +121,7 @@ module.exports.verify = function (email, options, callback) {
                           break;
                   case 3: if ((response.indexOf('250') > -1 || (options.ignore && response.indexOf(options.ignore) > -1)) && !ended) {
                               // RCPT TO target Worked
+                              success = true;
                               socket.write("RCPT TO:<someknowninvalid" + email + ">\r\n",function() { stage++; response = ""; });
                           }
                           else{
@@ -129,7 +130,7 @@ module.exports.verify = function (email, options, callback) {
                           break;
                   case 4: if (response.indexOf('250') > -1 || (options.ignore && response.indexOf(options.ignore) > -1)) {
                               // RCPT TO test invalid  Worked
-                              success = true;
+                              unknown = true;
                           }
                           stage++;
                           response = "";
@@ -154,6 +155,7 @@ module.exports.verify = function (email, options, callback) {
             calledback = true;
             callback(null, {
               success: success,
+              unknown: unknown,
               info: (email + " is " + (success ? "a valid" : "an invalid") + " address"),
               addr: email });
           }
