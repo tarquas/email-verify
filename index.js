@@ -66,6 +66,7 @@ module.exports.verify = function (email, options, callback) {
         var net = require('net');
         var socket = net.createConnection(options.port, smtp);
         var success = false;
+        var unknown = false;
         var response = "";
         var completed = false;
         var calledback = false;
@@ -118,8 +119,16 @@ module.exports.verify = function (email, options, callback) {
                               socket.end();
                           }
                           break;
-                  case 3: if (response.indexOf('250') > -1 || (options.ignore && response.indexOf(options.ignore) > -1)) {
-                              // RCPT Worked
+                  case 3: if ((response.indexOf('250') > -1 || (options.ignore && response.indexOf(options.ignore) > -1)) && !ended) {
+                              // RCPT TO target Worked
+                              socket.write("RCPT TO:<someknowninvalid" + email + ">\r\n",function() { stage++; response = ""; });
+                          }
+                          else{
+                              socket.end();
+                          }
+                          break;
+                  case 4: if (response.indexOf('250') > -1 || (options.ignore && response.indexOf(options.ignore) > -1)) {
+                              // RCPT TO test invalid  Worked
                               success = true;
                           }
                           stage++;
@@ -127,7 +136,7 @@ module.exports.verify = function (email, options, callback) {
                           // close the connection cleanly.
                           if(!ended) socket.write("QUIT\r\n");
                           break;
-                  case 4:
+                  case 5:
                     socket.end();
               }
           }
