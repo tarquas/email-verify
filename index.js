@@ -64,7 +64,15 @@ module.exports.verify = function (email, options, callback) {
         var stage = 0;
 
         var net = require('net');
-        var socket = net.createConnection(options.port, smtp);
+        var http = require('http');
+
+        var socket = !options.proxy ? net.createConnection(options.port, smtp) : var req = http.request({
+          host: options.proxy.match(/^[^:]*/) [0],
+          port: (options.proxy.match(/:(.*)$/) || []) [1],
+          method: 'CONNECT',
+          path: smtp + ':' + options.port
+        });
+
         var success = false;
         var unknown = false;
         var response = "";
