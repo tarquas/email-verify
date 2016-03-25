@@ -66,12 +66,47 @@ module.exports.verify = function (email, options, callback) {
         var net = require('net');
         var http = require('http');
 
-        var socket = !options.proxy ? net.createConnection(options.port, smtp) : http.request({
-          host: options.proxy.match(/^[^:]*/) [0],
-          port: (options.proxy.match(/:(.*)$/) || []) [1],
-          method: 'CONNECT',
-          path: smtp + ':' + options.port
-        });
+        var socket;
+      
+        function setSocket(res, _socket, head) {
+          socket = _socket;
+      
+          if (options.timeout > 0) {
+            socket.setTimeout(options.timeout, function() {
+              if( !calledback ){
+                calledback = true;
+                callback(null,
+                         {
+                            success: false,
+                            info: "Connection Timed Out",
+                            addr: email
+                         });
+              }
+              socket.destroy()
+            });
+          }
+
+          socket.on('data', socketOnData);
+          socket.on('connect', socketOnConnect);
+          socket.on('error', socketOnError);
+          socket.on('end', socketOnEnd);
+        }
+        
+        if (!options.proxy) {
+          socket = net.createConnection(options.port, smtp);
+          setSocket(null, _socket);
+        } else {
+          var req = http.request({
+            host: options.proxy.match(/^[^:]*/) [0],
+            port: (options.proxy.match(/:(.*)$/) || []) [1],
+            method: 'CONNECT',
+            path: smtp + ':' + options.port
+          });
+      
+          req.on('connect', setSocket);
+          req.on('error', socketOnError)
+          req.end();
+        }
 
         var success = false;
         var unknown = false;
@@ -80,24 +115,7 @@ module.exports.verify = function (email, options, callback) {
         var calledback = false;
         var ended = false;
 
-        if (options.timeout > 0) {
-          socket.setTimeout(options.timeout, function() {
-            if( !calledback ){
-              calledback = true;
-              callback(null,
-                       {
-                          success: false,
-                          info: "Connection Timed Out",
-                          addr: email
-                       });
-            }
-            socket.destroy()
-          });
-        }
-
-
-
-        socket.on('data', function(data) {
+        function socketOnData(data) {
           response += data.toString();
           completed = response.slice(-1) === '\n';
 
@@ -149,15 +167,21 @@ module.exports.verify = function (email, options, callback) {
                     socket.end();
               }
           }
-        }).on('connect', function(data) {
+        }
+        
+        function socketOnConnect(data) {
 
-        }).on('error', function(err) {
+        }
+        
+        function socketOnError(err) {
           ended = true;
           if( !calledback ){
             calledback = true;
             callback( err, { success: false, info: null, addr: email });
           }
-        }).on('end', function() {
+        }
+        
+        function socketOnEnd() {
           ended = true;
           if( !calledback ){
             calledback = true;
@@ -167,7 +191,7 @@ module.exports.verify = function (email, options, callback) {
               info: (email + " is " + (success ? "a valid" : "an invalid") + " address"),
               addr: email });
           }
-        });
+        };
     }
   });
   return true;
