@@ -56,6 +56,7 @@ The callback is a function(err, info) that has an info object:
 ```
 {
   success: boolean
+  unknown: boolean // if set when mail server doesn't allow to check if user is valid
   info: string
   addr: the address being verified
 }
@@ -70,7 +71,8 @@ The options are:
   timeout : integer, socket timeout defaults to 0 which is no timeout
   fdqn : domain, used as part of the HELO, defaults to mail.example.org
   dns: ip address, or array of ip addresses (as strings), used to set the servers of the dns check,
-  ignore: set an ending response code integer to ignore, such as 450 for greylisted emails
+  ignore: set an ending response code integer to ignore, such as 450 for greylisted emails,
+  proxy: if set, will be used to tunnel SMTP request via HTTP CONNECT.
 }
 ```
 
